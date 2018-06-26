@@ -35,9 +35,9 @@ commit_release() {
 }
 
 push() {
-  git push --quiet --set-upstream release travisrelease
+  git push release travisrelease
   git tag -am "v$RELEASE_VERSION" "v$RELEASE_VERSION"
-  git push "v$RELEASE_VERSION"
+  git push release "v$RELEASE_VERSION"
   git push -d release "$BRANCHNAME"
 }
 
