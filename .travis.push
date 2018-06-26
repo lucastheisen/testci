@@ -1,0 +1,58 @@
+#!/bin/bash
+
+failout() {
+  msg=( "$@" )
+  tostr="${msg[*]}"
+  echo "FAILURE: $tostr"
+  exit -1
+}
+
+init() {
+  echo "Initializing git"
+  git config --local user.email "travisci@lucastheisen.com"
+  git config --local user.name "Travis CI"
+  git remote add release \
+    $(git remote get-url origin | sed -e "s'https://'https://$GITHUB_TOKEN@'") \
+    > /dev/null 2>&1
+}
+
+branch() {
+  echo "Branching $BRANCHNAME"
+  git checkout -b "$BRANCHNAME"
+}
+
+update_version() {
+  echo "Releasing [$RELEASE_VERSION]"
+  mvn versions:set -DnewVersion="$RELEASE_VERSION"
+  mvn versions:commit
+}
+
+commit_release() {
+  git commit -am "Travis build: $TRAVIS_BUILD_NUMBER"
+}
+
+push() {
+  git push --quiet --set-upstream release travisrelease
+  git tag -am "v$RELEASE_VERSION" "v$RELEASE_VERSION"
+  git push "v$RELEASE_VERSION"
+}
+
+[[ -z ${GITHUB_TOKEN} ]] && failout "missing GITHUB_TOKEN"
+[[ -z ${TRAVIS_BUILD_NUMBER} ]] && failout "missing TRAVIS_BUILD_NUMBER"
+
+BRANCHNAME=travisrelease
+RELEASE_REVISION=".$TRAVIS_BUILD_NUMBER"
+RELEASE_VERSION=$( \
+  mvn -q -B \
+    org.codehaus.mojo:exec-maven-plugin:1.3.1:exec \
+    -Dexec.executable='echo' \
+    -Dexec.args='${project.version}' \
+    --non-recursive \
+    | sed -e "s/-SNAPSHOT/$RELEASE_REVISION/")
+
+init
+branch
+update_version
+commit_release
+push
+
