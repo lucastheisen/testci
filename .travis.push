@@ -20,6 +20,7 @@ init() {
 
 branch() {
   echo "Branching $BRANCHNAME"
+  git push -d release "$BRANCHNAME"
   git checkout -b "$BRANCHNAME"
 }
 
@@ -37,6 +38,7 @@ push() {
   git push --quiet --set-upstream release travisrelease
   git tag -am "v$RELEASE_VERSION" "v$RELEASE_VERSION"
   git push "v$RELEASE_VERSION"
+  git push -d release "$BRANCHNAME"
 }
 
 [[ -z ${GITHUB_TOKEN} ]] && failout "missing GITHUB_TOKEN"
